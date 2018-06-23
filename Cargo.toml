@@ -1,0 +1,14 @@
+[package]
+name = "imgui-gl-renderer"
+version = "0.1.0"
+authors = ["german gomez <germangb42@gmail.com>"]
+
+[dependencies]
+gl = "0.10"
+imgui = "0.0.18"
+
+[patch.crates-io]
+imgui = { git = "https://github.com/Gekkio/imgui-rs.git" }
+
+[dev-dependencies]
+sdl2 = "0.31"
