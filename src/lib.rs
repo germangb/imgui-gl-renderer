@@ -20,7 +20,6 @@ macro_rules! check {
     }}
 }
 
-#[derive(Debug)]
 pub struct Renderer {
     objects: Objects,
 }
@@ -55,7 +54,7 @@ impl Renderer {
             check!(gl::BindTexture(gl::TEXTURE_2D, self.objects.texture));
 
             //TODO fix
-            //check!(gl::Enable(gl::SCISSOR_TEST));
+            check!(gl::Enable(gl::SCISSOR_TEST));
             check!(gl::Enable(gl::BLEND));
             check!(gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA));
 
@@ -63,10 +62,11 @@ impl Renderer {
             for cmd in draw.cmd_buffer.iter() {
                 check!(gl::Scissor(
                         cmd.clip_rect.x as _,
-                        (h - cmd.clip_rect.y) as _,
+                        (h - cmd.clip_rect.w) as _,
                         (cmd.clip_rect.z - cmd.clip_rect.x) as _,
                         (cmd.clip_rect.w - cmd.clip_rect.y) as _,
                     ));
+
                 check!(gl::DrawElements(
                         gl::TRIANGLES,
                         cmd.elem_count as _,
@@ -86,7 +86,6 @@ impl Renderer {
     }
 }
 
-#[derive(Debug)]
 struct Objects {
     vbo: GLuint,
     ebo: GLuint,
@@ -110,8 +109,6 @@ impl Objects {
             u_texture,
             texture: init_texture(ctx),
         };
-
-        println!("{:?}", obj);
         obj
     }
 
@@ -120,6 +117,8 @@ impl Objects {
         let vert_size = mem::size_of::<ImDrawVert>();
 
         check!(gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo));
+        check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo));
+
         check!(gl::BufferSubData(
                 gl::ARRAY_BUFFER,
                 0,
@@ -127,7 +126,6 @@ impl Objects {
                 vert.as_ptr() as _,
             ));
 
-        check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo));
         check!(gl::BufferSubData(
                 gl::ELEMENT_ARRAY_BUFFER,
                 0,
@@ -188,13 +186,16 @@ unsafe fn init_mesh() -> (GLuint, GLuint, GLuint) {
     let mut ebo = 0;
     let mut vao = 0;
 
-    let buffer_init = vec![0u8; 1024 * 16];
+    let buffer_init = vec![0u8; 1024 * 512];
 
     check!(gl::GenBuffers(1, &mut vbo));
     check!(gl::GenBuffers(1, &mut ebo));
     check!(gl::GenVertexArrays(1, &mut vao));
 
+    check!(gl::BindVertexArray(vao));
     check!(gl::BindBuffer(gl::ARRAY_BUFFER, vbo));
+    check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo));
+
     check!(gl::BufferData(
             gl::ARRAY_BUFFER,
             buffer_init.len() as _,
@@ -202,20 +203,12 @@ unsafe fn init_mesh() -> (GLuint, GLuint, GLuint) {
             gl::STREAM_DRAW,
         ));
 
-    check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo));
     check!(gl::BufferData(
             gl::ELEMENT_ARRAY_BUFFER,
             buffer_init.len() as _,
             buffer_init.as_ptr() as _,
             gl::STREAM_DRAW,
         ));
-
-    check!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
-    check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0));
-
-    check!(gl::BindVertexArray(vao));
-    check!(gl::BindBuffer(gl::ARRAY_BUFFER, vbo));
-    check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo));
 
     check!(gl::EnableVertexAttribArray(0));
     check!(gl::EnableVertexAttribArray(1));
@@ -230,6 +223,8 @@ unsafe fn init_mesh() -> (GLuint, GLuint, GLuint) {
     check!(gl::DisableVertexAttribArray(0));
     check!(gl::DisableVertexAttribArray(1));
     check!(gl::DisableVertexAttribArray(2));
+    check!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
+    check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0));
 
     (vbo, ebo, vao)
 }
@@ -253,7 +248,6 @@ unsafe fn init_texture(ctx: &mut ImGui) -> GLuint {
                 gl::UNSIGNED_BYTE,
                 t.pixels.as_ptr() as _,
             ));
-        //println!("{}x{}", t.width, t.height);
         check!(gl::BindTexture(gl::TEXTURE_2D, 0));
         handle
     });

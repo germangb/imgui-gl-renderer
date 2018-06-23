@@ -12,3 +12,4 @@ imgui = { git = "https://github.com/Gekkio/imgui-rs.git" }
 
 [dev-dependencies]
 sdl2 = "0.31"
+imgui-sdl2 = "0.2"
