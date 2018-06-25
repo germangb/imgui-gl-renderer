@@ -1,7 +1,7 @@
 extern crate gl;
 extern crate imgui;
 
-use imgui::{ImGui, Ui, ImDrawVert, ImDrawIdx};
+use imgui::{ImDrawIdx, ImDrawVert, ImGui, Ui};
 
 use gl::types::*;
 
@@ -17,7 +17,7 @@ macro_rules! check {
         }
 
         result
-    }}
+    }};
 }
 
 pub struct Renderer {
@@ -26,13 +26,15 @@ pub struct Renderer {
 
 impl Renderer {
     pub unsafe fn init(ctx: &mut ImGui) -> Self {
-        Self { objects: Objects::init(ctx) }
+        Self {
+            objects: Objects::init(ctx),
+        }
     }
 
     pub unsafe fn render(&self, ui: Ui) -> Result<(), ()> {
         ui.render(|ui, draw| {
             self.objects.update_mesh(draw.idx_buffer, draw.vtx_buffer);
-            
+
             check!(gl::BindVertexArray(self.objects.vao));
             check!(gl::UseProgram(self.objects.shader));
 
@@ -47,7 +49,12 @@ impl Renderer {
                 [-1.0, 1.0, 0.0, 1.0],
             ];
 
-            check!(gl::UniformMatrix4fv(self.objects.u_matrix, 1, gl::FALSE, matrix.as_ptr() as _));
+            check!(gl::UniformMatrix4fv(
+                self.objects.u_matrix,
+                1,
+                gl::FALSE,
+                matrix.as_ptr() as _
+            ));
             check!(gl::Uniform1i(self.objects.u_texture, 0));
 
             check!(gl::ActiveTexture(gl::TEXTURE0));
@@ -61,18 +68,18 @@ impl Renderer {
             let mut id_offset = 0;
             for cmd in draw.cmd_buffer.iter() {
                 check!(gl::Scissor(
-                        cmd.clip_rect.x as _,
-                        (h - cmd.clip_rect.w) as _,
-                        (cmd.clip_rect.z - cmd.clip_rect.x) as _,
-                        (cmd.clip_rect.w - cmd.clip_rect.y) as _,
-                    ));
+                    cmd.clip_rect.x as _,
+                    (h - cmd.clip_rect.w) as _,
+                    (cmd.clip_rect.z - cmd.clip_rect.x) as _,
+                    (cmd.clip_rect.w - cmd.clip_rect.y) as _,
+                ));
 
                 check!(gl::DrawElements(
-                        gl::TRIANGLES,
-                        cmd.elem_count as _,
-                        gl::UNSIGNED_SHORT,
-                        id_offset as _,
-                    ));
+                    gl::TRIANGLES,
+                    cmd.elem_count as _,
+                    gl::UNSIGNED_SHORT,
+                    id_offset as _,
+                ));
                 id_offset += cmd.elem_count * mem::size_of::<ImDrawIdx>() as u32;
             }
 
@@ -120,18 +127,18 @@ impl Objects {
         check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo));
 
         check!(gl::BufferSubData(
-                gl::ARRAY_BUFFER,
-                0,
-                (vert.len() * vert_size) as _,
-                vert.as_ptr() as _,
-            ));
+            gl::ARRAY_BUFFER,
+            0,
+            (vert.len() * vert_size) as _,
+            vert.as_ptr() as _,
+        ));
 
         check!(gl::BufferSubData(
-                gl::ELEMENT_ARRAY_BUFFER,
-                0,
-                (idx.len() * idx_size) as _,
-                idx.as_ptr() as _,
-            ));
+            gl::ELEMENT_ARRAY_BUFFER,
+            0,
+            (idx.len() * idx_size) as _,
+            idx.as_ptr() as _,
+        ));
 
         check!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
         check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0));
@@ -169,14 +176,24 @@ unsafe fn init_program() -> (GLuint, GLint, GLint) {
     )
 }
 
-unsafe fn create_shader(type_ : GLenum, source: &str) -> GLuint {
+unsafe fn create_shader(type_: GLenum, source: &str) -> GLuint {
     let shader = check!(gl::CreateShader(type_));
-    check!(gl::ShaderSource(shader, 1, [source.as_ptr() as _].as_ptr(), [source.len() as _].as_ptr()));
+    check!(gl::ShaderSource(
+        shader,
+        1,
+        [source.as_ptr() as _].as_ptr(),
+        [source.len() as _].as_ptr()
+    ));
     check!(gl::CompileShader(shader));
 
     let mut log = vec![0u8; 1024];
     let mut len = 0;
-    check!(gl::GetShaderInfoLog(shader, 1024, &mut len, log.as_ptr() as _));
+    check!(gl::GetShaderInfoLog(
+        shader,
+        1024,
+        &mut len,
+        log.as_ptr() as _
+    ));
     assert_eq!(len, 0);
     shader
 }
@@ -197,27 +214,48 @@ unsafe fn init_mesh() -> (GLuint, GLuint, GLuint) {
     check!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo));
 
     check!(gl::BufferData(
-            gl::ARRAY_BUFFER,
-            buffer_init.len() as _,
-            buffer_init.as_ptr() as _,
-            gl::STREAM_DRAW,
-        ));
+        gl::ARRAY_BUFFER,
+        buffer_init.len() as _,
+        buffer_init.as_ptr() as _,
+        gl::STREAM_DRAW,
+    ));
 
     check!(gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            buffer_init.len() as _,
-            buffer_init.as_ptr() as _,
-            gl::STREAM_DRAW,
-        ));
+        gl::ELEMENT_ARRAY_BUFFER,
+        buffer_init.len() as _,
+        buffer_init.as_ptr() as _,
+        gl::STREAM_DRAW,
+    ));
 
     check!(gl::EnableVertexAttribArray(0));
     check!(gl::EnableVertexAttribArray(1));
     check!(gl::EnableVertexAttribArray(2));
 
     let stride = 8 + 8 + 4; // vec2 + vec2 + ivec4
-    check!(gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, stride, 0 as _));
-    check!(gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, 8 as _));
-    check!(gl::VertexAttribPointer(2, 4, gl::UNSIGNED_BYTE, gl::FALSE, stride, 16 as _));
+    check!(gl::VertexAttribPointer(
+        0,
+        2,
+        gl::FLOAT,
+        gl::FALSE,
+        stride,
+        0 as _
+    ));
+    check!(gl::VertexAttribPointer(
+        1,
+        2,
+        gl::FLOAT,
+        gl::FALSE,
+        stride,
+        8 as _
+    ));
+    check!(gl::VertexAttribPointer(
+        2,
+        4,
+        gl::UNSIGNED_BYTE,
+        gl::FALSE,
+        stride,
+        16 as _
+    ));
 
     check!(gl::BindVertexArray(0));
     check!(gl::DisableVertexAttribArray(0));
@@ -235,19 +273,27 @@ unsafe fn init_texture(ctx: &mut ImGui) -> GLuint {
         check!(gl::GenTextures(1, &mut handle));
         check!(gl::ActiveTexture(gl::TEXTURE0));
         check!(gl::BindTexture(gl::TEXTURE_2D, handle));
-        check!(gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _));
-        check!(gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _));
+        check!(gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_MIN_FILTER,
+            gl::NEAREST as _
+        ));
+        check!(gl::TexParameteri(
+            gl::TEXTURE_2D,
+            gl::TEXTURE_MAG_FILTER,
+            gl::NEAREST as _
+        ));
         check!(gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                gl::RGBA8 as _,
-                t.width as _,
-                t.height as _,
-                0,
-                gl::RGBA,
-                gl::UNSIGNED_BYTE,
-                t.pixels.as_ptr() as _,
-            ));
+            gl::TEXTURE_2D,
+            0,
+            gl::RGBA8 as _,
+            t.width as _,
+            t.height as _,
+            0,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            t.pixels.as_ptr() as _,
+        ));
         check!(gl::BindTexture(gl::TEXTURE_2D, 0));
         handle
     });
